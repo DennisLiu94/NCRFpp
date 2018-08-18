@@ -13,7 +13,7 @@ from .wordsequence import WordSequence
 from .crf import CRF
 
 class SeqModel(nn.Module):
-    def __init__(self, data):
+    def __init__(self, data, meansentfeats = False):
         super(SeqModel, self).__init__()
         self.use_crf = data.use_crf
         print("build network...")
@@ -28,7 +28,7 @@ class SeqModel(nn.Module):
         ## add two more label for downlayer lstm, use original label size for CRF
         label_size = data.label_alphabet_size
         data.label_alphabet_size += 2
-        self.word_hidden = WordSequence(data)
+        self.word_hidden = WordSequence(data, meansentfeats)
         if self.use_crf:
             self.crf = CRF(label_size, self.gpu)
 

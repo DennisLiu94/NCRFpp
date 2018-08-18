@@ -11,11 +11,13 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from .wordrep import WordRep
 
 class WordSequence(nn.Module):
-    def __init__(self, data):
+    def __init__(self, data, meansentfeats = True):
         super(WordSequence, self).__init__()
         print("build word sequence feature extractor: %s..."%(data.word_feature_extractor))
         self.gpu = data.HP_gpu
         self.use_char = data.use_char
+
+        self.meansentfeats = meansentfeats
         # self.batch_size = data.HP_batch_size
         # self.hidden_dim = data.HP_hidden_dim
         self.droplstm = nn.Dropout(data.HP_dropout)
@@ -56,8 +58,10 @@ class WordSequence(nn.Module):
                 self.cnn_drop_list.append(nn.Dropout(data.HP_dropout))
                 self.cnn_batchnorm_list.append(nn.BatchNorm1d(data.HP_hidden_dim))
         # The linear layer that maps from hidden state space to tag space
-        self.hidden2tag = nn.Linear(data.HP_hidden_dim, data.label_alphabet_size)
-
+        if not meansentfeats:
+            self.hidden2tag = nn.Linear(data.HP_hidden_dim, data.label_alphabet_size)
+        else:
+            self.hidden2tag = nn.Linear(data.HP_hidden_dim * 2, data.label_alphabet_size)
         if self.gpu:
             self.droplstm = self.droplstm.cuda()
             self.hidden2tag = self.hidden2tag.cuda()
@@ -99,6 +103,9 @@ class WordSequence(nn.Module):
             hidden = None
             lstm_out, hidden = self.lstm(packed_words, hidden)
             lstm_out, _ = pad_packed_sequence(lstm_out)
+            if self.meansentfeats:
+                mfs = lstm_out.mean(axis = 0, keepdim = True)
+                lstm_out = lstm_out.cat([lstm_out, mfs], axis = 2)
             ## lstm_out (seq_len, seq_len, hidden_size)
             feature_out = self.droplstm(lstm_out.transpose(1,0))
         ## feature_out (batch_size, seq_len, hidden_size)

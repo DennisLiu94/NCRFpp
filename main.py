@@ -274,12 +274,12 @@ def batchify_with_label(input_batch_list, gpu, volatile_flag=False):
     return word_seq_tensor,feature_seq_tensors, word_seq_lengths, word_seq_recover, char_seq_tensor, char_seq_lengths, char_seq_recover, label_seq_tensor, mask
 
 
-def train(data):
+def train(data, meansentfeats = False):
     print("Training model...")
     data.show_data_summary()
     save_data_name = data.model_dir +".dset"
     data.save(save_data_name)
-    model = SeqModel(data)
+    model = SeqModel(data, meansentfeats = meansentfeats)
     loss_function = nn.NLLLoss()
     if data.optimizer.lower() == "sgd":
         optimizer = optim.SGD(model.parameters(), lr=data.HP_lr, momentum=data.HP_momentum,weight_decay=data.HP_l2)
@@ -419,11 +419,13 @@ def load_model_decode(data, name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Tuning with NCRF++')
     # parser.add_argument('--status', choices=['train', 'decode'], help='update algorithm', default='train')
+    parser.add_argument('--msf', action='store_true', default = False)
     parser.add_argument('--config',  help='Configuration File' )
 
     args = parser.parse_args()
     data = Data()
-    data.HP_gpu = torch.cuda.is_available()
+    #data.HP_gpu = torch.cuda.is_available()
+    data.HP_gpu = False
     data.read_config(args.config)
     status = data.status.lower()
     print("Seed num:",seed_num)
@@ -435,7 +437,7 @@ if __name__ == '__main__':
         data.generate_instance('dev')
         data.generate_instance('test')
         data.build_pretrain_emb()
-        train(data)
+        train(data, args.msf)
     elif status == 'decode':
         print("MODEL: decode")
         data.load(data.dset_dir)
