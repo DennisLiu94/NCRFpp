@@ -274,6 +274,7 @@ def batchify_with_label(input_batch_list, gpu, volatile_flag=False):
     return word_seq_tensor,feature_seq_tensors, word_seq_lengths, word_seq_recover, char_seq_tensor, char_seq_lengths, char_seq_recover, label_seq_tensor, mask
 
 
+
 def train(data, meansentfeats = False):
     print("Training model...")
     data.show_data_summary()
